@@ -11,13 +11,8 @@
 
 #pragma once
 
-#define GLM_ENABLE_EXPERIMENTAL
-
 #include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>
-
-#include <cassert>
 
 namespace elyrium {
 
