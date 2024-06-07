@@ -2,6 +2,34 @@ cmake_minimum_required(VERSION 3.24.0)
 
 project(ElyriumLib VERSION 0.5.0)
 
+
+# set the source files of the project
+set (ELYRIUM_LIB_SOURCE_FILES 
+	
+)
+
+
+# building the library
+if (BUILD_STATIC)
+	add_library(ElyriumLib STATIC "${ELYRIUM_LIB_SOURCE_FILES}")
+else ()
+	add_library(ElyriumLib SHARED "${ELYRIUM_LIB_SOURCE_FILES}")
+endif ()
+
+
+# build error level
+if (WIN32) 
+	target_compile_options(ElyriumLib PRIVATE /WX)
+else () 
+	target_compile_options(ElyriumLib PRIVATE -Wall -Wextra -Wpedantic -Wformat)
+endif ()
+
+
+# use LSD num utilities extension
+target_compile_definitions(ElyriumLib PUBLIC LSD_ENUM_UTILITIES)
+
+
+# includes
 target_include_directories(ElyriumLib PUBLIC
 	# local include directory
 	${CMAKE_CURRENT_SOURCE_DIR}/include/
@@ -11,40 +39,15 @@ target_include_directories(ElyriumLib PUBLIC
 	${LIBRARY_PATH}/fmt/include/
 )
 
-set (Elyrium_LIB_SOURCE_FILES 
-	"src/Common/Logger.cpp"
-	"src/Common/Benchmark.cpp"
-	"src/Common/FileSystem.cpp"
-)
 
-# building the library
-if (BUILD_STATIC)
-	add_library(ElyriumLib STATIC "${Elyrium_LIB_SOURCE_FILES}")
-else ()
-	add_library(ElyriumLib SHARED "${Elyrium_LIB_SOURCE_FILES}")
-endif ()
-
-# build error level
-if (WIN32) 
-	target_compile_options(ElyriumLib PRIVATE /WX)
-else () 
-	target_compile_options(ElyriumLib PRIVATE -Wall -Wextra -Wpedantic)
-endif ()
-
-
-# use LSD num utilities extension
-
-target_compile_definitions(ElyriumLib PUBLIC LSD_ENUM_UTILITIES)
-
-
-add_dependencies(ElyriumLib build_shaders)
-
-# link some libraries
+# link libraries
 target_link_libraries(ElyriumLib
 LINK_PUBLIC
 	fmt::fmt
 )
 
+
+# precompile headers
 target_precompile_headers(ElyriumLib
 PUBLIC
 	<typeindex>

@@ -29,7 +29,7 @@ set(CMAKE_CXX_STANDARD 23)
 
 # Include sub-projects.
 add_subdirectory ("Deps")
-add_subdirectory ("ElyriumLib")
+#add_subdirectory ("ElyriumLib")
 add_subdirectory ("Elyrium")
 add_subdirectory ("ElyriumVM")
 add_subdirectory ("Tests")
