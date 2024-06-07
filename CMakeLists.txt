@@ -1,11 +1,11 @@
 cmake_minimum_required (VERSION 3.24.0)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "14.3" CACHE STRING "Minimum OS X deployment version")
 
-project (ElysiumToolchain)
+project (ElyriumToolchain)
 
 
 # project options
-option(BUILD_STATIC "Build the Elysium toolchain and its dependencies statically" ON)
+option(BUILD_STATIC "Build the Elyrium toolchain and its dependencies statically" ON)
 if (BUILD_STATIC)
 	option(BUILD_SHARED_LIBS OFF)
 else ()
@@ -29,7 +29,7 @@ set(CMAKE_CXX_STANDARD 23)
 
 # Include sub-projects.
 add_subdirectory ("Deps")
-add_subdirectory ("ElysiumLib")
-add_subdirectory ("Elysium")
-add_subdirectory ("ElysiumVM")
+add_subdirectory ("ElyriumLib")
+add_subdirectory ("Elyrium")
+add_subdirectory ("ElyriumVM")
 add_subdirectory ("Tests")

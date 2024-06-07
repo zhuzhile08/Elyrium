@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Elysium",
+            "name": "Elyrium",
             "type": "cppdbg",
             "request": "launch",
             "args": [],
@@ -15,11 +15,11 @@
             "externalConsole": false,
             "windows": {
                 "MIMode": "gdb",
-                "program": "${workspaceFolder}\\out\\build\\Debug\\Elysium\\Debug\\elysium.exe"
+                "program": "${workspaceFolder}\\out\\build\\Debug\\Elyrium\\Debug\\Elyrium.exe"
             },
             "osx": {
                 "MIMode": "lldb",
-                "program": "${workspaceFolder}/out/build/Debug/Elysium/elysium"
+                "program": "${workspaceFolder}/out/build/Debug/Elyrium/Elyrium"
             }
         }
     ]

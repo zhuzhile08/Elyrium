@@ -46,7 +46,6 @@
 CMakeSettings.json
 CMakePresets.json
 imgui.ini
-LyraEngine/include/ValidationLayerPath.cmake
 
 # exceptions
 !.vscode/launch.json
