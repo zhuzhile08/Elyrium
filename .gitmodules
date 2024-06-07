@@ -1,0 +1,6 @@
+[submodule "Deps/lsd"]
+	path = Deps/lsd
+	url = https://github.com/zhuzhile08/Lyra-Standard-Library.git
+[submodule "Deps/fmt"]
+	path = Deps/fmt
+	url = https://github.com/fmtlib/fmt.git
