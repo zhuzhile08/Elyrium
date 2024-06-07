@@ -1,20 +1,31 @@
 cmake_minimum_required(VERSION 3.24.0)
 
-project(ElyriumLib VERSION 0.5.0)
+project(ElyriumLib VERSION 0.0.1)
 
+
+# set include path
+set (ELYRIUM_LIB_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # set the source files of the project
 set (ELYRIUM_LIB_SOURCE_FILES 
-	
+	"src/Common/test.cpp"
 )
 
 
 # building the library
 if (BUILD_STATIC)
-	add_library(ElyriumLib STATIC "${ELYRIUM_LIB_SOURCE_FILES}")
+	add_library(ElyriumLib STATIC ${ELYRIUM_LIB_SOURCE_FILES})
 else ()
-	add_library(ElyriumLib SHARED "${ELYRIUM_LIB_SOURCE_FILES}")
+	add_library(ElyriumLib SHARED ${ELYRIUM_LIB_SOURCE_FILES})
 endif ()
+
+
+# use LSD num utilities extension
+target_compile_definitions(ElyriumLib PUBLIC LSD_ENUM_UTILITIES)
+
+
+# define library version
+target_compile_definitions(ElyriumLib PUBLIC ELYRIUM_LIB_VERSION="${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
 
 
 # build error level
@@ -25,14 +36,10 @@ else ()
 endif ()
 
 
-# use LSD num utilities extension
-target_compile_definitions(ElyriumLib PUBLIC LSD_ENUM_UTILITIES)
-
-
 # includes
 target_include_directories(ElyriumLib PUBLIC
 	# local include directory
-	${CMAKE_CURRENT_SOURCE_DIR}/include/
+	${ELYRIUM_LIB_INCLUDE_DIR}
 
 	# utility libraries
 	${LIBRARY_PATH}/lsd/

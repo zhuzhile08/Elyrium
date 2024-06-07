@@ -2,26 +2,20 @@
  * @file Config.h
  * @author zhuzhile08 (zhuzhile08@gmail.com)
  * 
- * @brief a file containing engine and application settings
+ * @brief Library configs and settings
  * 
- * @version 0.1
- * @date 2022-12-26
+ * @date 2024-06-07
  * 
- * @copyright Copyright (c) 2022
+ * @copyright Copyright (c) 2024
  *************************/
 
 #pragma once
-
-#include <Common/Common.h>
-#include <LSD/Array.h>
-
-#include <string_view>
 
 namespace elyrium {
 
 namespace config {
 
-
+inline constexpr const char* version = ELYRIUM_LIB_VERSION;
 
 } // namespace config
 
