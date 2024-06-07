@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24.0)
 
-project(Elyrium VERSION 1.0.0)
+project(Elyrium VERSION 0.0.1)
 
 
 # build the content manager
@@ -9,8 +9,12 @@ add_executable(Elyrium
 )
 
 
+# set version macro
+target_compile_definitions(ElyriumLib PUBLIC ELYRIUM_VERSION="${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
+
+
 # set the executable name to lowercase to match the standard with other languages
-set_target_properties(Elyrium PROPERTIES OUTPUT_NAME "Elyrium")
+set_target_properties(Elyrium PROPERTIES OUTPUT_NAME "elyrium")
 
 
 # build error level
@@ -25,7 +29,7 @@ endif ()
 target_include_directories(Elyrium PRIVATE
 	# local include directory
 	${CMAKE_CURRENT_SOURCE_DIR}/include/
-	${Elyrium_LIB_INCLUDE_DIR}
+	${ELYRIUM_LIB_INCLUDE_DIR}
 
 	# utility libraries
 	${LIBRARY_PATH}/lsd/
@@ -36,5 +40,5 @@ target_include_directories(Elyrium PRIVATE
 # link libraries
 target_link_libraries(Elyrium
 PRIVATE
-	#ElyriumLib
+	ElyriumLib
 )
