@@ -5,7 +5,6 @@
  * @brief Library configs and settings
  * 
  * @date 2024-06-07
- * 
  * @copyright Copyright (c) 2024
  *************************/
 

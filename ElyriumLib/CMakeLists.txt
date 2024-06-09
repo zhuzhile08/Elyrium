@@ -8,7 +8,8 @@ set (ELYRIUM_LIB_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # set the source files of the project
 set (ELYRIUM_LIB_SOURCE_FILES 
-	"src/Common/test.cpp"
+	"src/Interpreter/Token.cpp"
+	"src/Interpreter/Lexer.cpp"
 )
 
 

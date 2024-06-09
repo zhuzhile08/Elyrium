@@ -6,6 +6,8 @@
 #include <Common/Config.h>
 #include <Config.h>
 
+#include <Interpreter/Lexer.h>
+
 #include <fmt/core.h>
 #include <fmt/chrono.h>
 
@@ -20,6 +22,9 @@ int runCmdEnv() {
 		return 0;
 	}
 	*/
+
+	elyrium::Lexer lexer("let a : i32 = 2 + 3; let b: f32 =3+2.4;let c:string=\"Hello world\";");
+	fmt::println("Tokens: {}", lexer.stringifyTokens());
 
 	return 0;
 }
