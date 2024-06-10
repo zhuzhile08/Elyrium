@@ -1,19 +1,23 @@
 #include <Interpreter/Lexer.h>
 
+#include <Core/Error.h>
+
 namespace elyrium {
 
 Lexer::Lexer(const std::string& source) : m_source(source), m_iter(m_source.begin()) {
-	while (m_iter < m_source.end()) parseToken();
+	while (m_fine && m_iter < m_source.end()) parseToken();
 }
 
 std::string Lexer::stringifyTokens() const {
-	std::string val;
+	std::string val = "";
 
-	for (const auto& tok : m_tokens) {
-		val.append(tok.stringify()).append(", ");
+	if (m_fine) {
+		for (const auto& tok : m_tokens) {
+			val.append(tok.stringify()).append(", ");
+		}
+
+		val.erase(val.end() - 2, val.end());
 	}
-
-	val.erase(val.end() - 2, val.end());
 
 	return val;
 }
@@ -28,7 +32,7 @@ size_type Lexer::singleCharTok() {
 size_type Lexer::duplicateCharTok(Token::Type& type, Token::Type singleChar, Token::Type doubleChar) {
 	++m_colNum;
 
-	if (*m_iter == *++m_iter) {
+	if ((m_iter + 1) < m_source.end() && *m_iter == *++m_iter) {
 		++m_colNum;
 		++m_iter;
 
@@ -45,7 +49,7 @@ size_type Lexer::duplicateCharTok(Token::Type& type, Token::Type singleChar, Tok
 size_type Lexer::appendEqualCharTok(Token::Type& type, Token::Type singleChar, Token::Type appendEqual) {
 	++m_colNum;
 
-	if (*++m_iter == '=') {
+	if ((m_iter + 1) < m_source.end() && *++m_iter == '=') {
 		++m_colNum;
 		++m_iter;
 
@@ -62,25 +66,37 @@ size_type Lexer::appendEqualCharTok(Token::Type& type, Token::Type singleChar, T
 size_type Lexer::duplicateAppendEqualCharTok(Token::Type& type, Token::Type singleChar, Token::Type doubleChar, Token::Type appendEqual) {
 	++m_colNum;
 
-	if (*m_iter == *++m_iter) {
-		++m_colNum;
-		++m_iter;
+	if ((m_iter + 1) < m_source.end()) {
+		if (*m_iter == *++m_iter) {
+			++m_colNum;
+			++m_iter;
 
-		type = doubleChar;
+			type = doubleChar;
 
-		return 2;
-	} else if (*m_iter == '=') {
-		++m_colNum;
-		++m_iter;
+			return 2;
+		} else if (*m_iter == '=') {
+			++m_colNum;
+			++m_iter;
 
-		type = appendEqual;
+			type = appendEqual;
 
-		return 2;
+			return 2;
+		}
 	} else {
 		type = singleChar;
 
 		return 1;
 	}
+}
+
+size_type Lexer::rewindAndCalcLineLen() {
+	size_type r = 1;
+
+	m_iter -= m_colNum;
+
+	for (auto it = m_iter; it != m_source.end() && *it != '\n'; ++it, ++r) { }
+
+	return r;
 }
 
 void Lexer::skipEmpty() {
@@ -121,16 +137,24 @@ void Lexer::parseToken() { // expects m_iter to have already started at the next
 		// strings
 
 		case '\"': 
-			++m_iter; // m_iter is now at the first character of the string
-			pos = m_iter - m_source.begin(); // recalculate position
+			++m_iter; // m_iter is now at the first character of the string or at the end
+			++m_colNum;
+			++pos; // recalculate position
 
-			for (; m_iter != m_source.end(); m_iter++, m_colNum++, len++) {
+			for (; m_iter < m_source.end(); m_iter++, m_colNum++, len++) {
 				if (*m_iter == '\"') {
+					finishedParsing = true;
+
 					++m_iter; // skip the last quotation mark
 					++m_colNum;
 
 					break;
 				}
+			}
+
+			if (!finishedParsing) {
+				error::report("", std::string_view(m_source).substr(pos - col - 1, rewindAndCalcLineLen()), row, col, error::Type::syntaxError, error::Message::untermString);
+				m_fine = false;
 			}
 
 			type = Token::Type::string;
@@ -143,10 +167,26 @@ void Lexer::parseToken() { // expects m_iter to have already started at the next
 		case '\'': 
 			type = Token::Type::character;
 
-			// assert that the next character is not a '
-			len = 1;
+			len = 1; // predeterminable values
 
-			++(++m_iter); // skip to the start of the next token / empty character
+			if (++m_iter == m_source.end()) {
+				++m_colNum;
+
+				error::report("", std::string_view(m_source).substr(pos - col, rewindAndCalcLineLen()), row, col, error::Type::syntaxError, error::Message::untermChar);
+				m_fine = false;
+			} else if (*m_iter == '\'') {
+				error::report("", std::string_view(m_source).substr(pos - col, rewindAndCalcLineLen()), row, col, error::Type::syntaxError, error::Message::emptyChar);
+				m_fine = false;
+			} else if (++m_iter == m_source.end() || *m_iter != '\'') {
+				++m_colNum;
+
+				error::report("", std::string_view(m_source).substr(pos - col, rewindAndCalcLineLen()), row, col, error::Type::syntaxError, error::Message::untermChar);
+				m_fine = false;
+			} else {
+				++m_iter;
+				++m_colNum;
+				++pos; // recalculate position
+			}
 
 			break;
 
@@ -390,14 +430,17 @@ void Lexer::parseToken() { // expects m_iter to have already started at the next
 
 			type = Token::Type::none;
 
-			--len; // the increments in the for loop will still get evaluated, so everything has to be set back by one
-			--m_colNum;
-			--m_iter;
+			// the increments in the for loop will still get evaluated if the lexer finishes normally, so everything has to be set back by one
+			if (finishedParsing) {
+				--len; 
+				--m_colNum;
+				--m_iter;
+			}
 
 			break;
 	}
 	
-	m_tokens.emplaceBack(type, std::string_view(m_source).substr(pos, len), col, row);
+	if (m_fine) m_tokens.emplaceBack(type, std::string_view(m_source).substr(pos, len), col, row);
 }
 
 } // namespace elyrium

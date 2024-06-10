@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include <Common/Common.h>
+#include <Core/Common.h>
 
 #include <Interpreter/Token.h>
 
@@ -36,10 +36,14 @@ private:
 
 	lsd::Vector<Token> m_tokens;
 
+	bool m_fine = true;
+
 	size_type singleCharTok();
 	size_type duplicateCharTok(Token::Type& type, Token::Type singleChar, Token::Type doubleChar);
 	size_type appendEqualCharTok(Token::Type& type, Token::Type singleChar, Token::Type appendEqual);
 	size_type duplicateAppendEqualCharTok(Token::Type& type, Token::Type singleChar, Token::Type doubleChar, Token::Type appendEqual);
+
+	size_type rewindAndCalcLineLen();
 
 	void skipEmpty();
 	void parseToken();
