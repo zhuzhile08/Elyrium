@@ -3,7 +3,8 @@
 #include <chrono>
 #include <filesystem>
 
-#include <Common/Config.h>
+#include <Core/Config.h>
+#include <Core/Error.h>
 #include <Config.h>
 
 #include <Interpreter/Lexer.h>
@@ -14,17 +15,27 @@
 namespace {
 
 int runCmdEnv() {
-	fmt::print(">>> ");
+	std::string inputBuffer;
+	inputBuffer.reserve(config::inputBufferStartingSize);
 
-	/**
-	char buffer[2];
-	while(std::fgets(buffer, 2, stdin)) {
-		return 0;
+	while (true) {
+		fmt::print(">>> ");
+
+		auto c = std::getchar();
+		while(c != '\n' && c != EOF) {
+			inputBuffer.push_back(c);
+			c = std::getchar();
+		}
+
+		if (inputBuffer == "__EXIT_CMD__") break;
+
+		elyrium::Lexer lexer(inputBuffer);
+		fmt::println("Tokens: {}", lexer.stringifyTokens());
+
+		std::fflush(stdin);
+
+		inputBuffer.clear();
 	}
-	*/
-
-	elyrium::Lexer lexer("let a : i32 = 2 + 3; let b: f32 =3+2.4;let c:string=\"Hello world\";");
-	fmt::println("Tokens: {}", lexer.stringifyTokens());
 
 	return 0;
 }
