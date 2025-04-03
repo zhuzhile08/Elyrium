@@ -5,21 +5,21 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Elyrium",
+            "name": "elyrium-cli",
             "type": "cppdbg",
             "request": "launch",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
             "environment": [],
-            "externalConsole": false,
+            "externalConsole": true,
             "windows": {
                 "MIMode": "gdb",
-                "program": "${workspaceFolder}\\out\\build\\Debug\\Elyrium\\Debug\\Elyrium.exe"
+                "program": "${workspaceFolder}\\out\\build\\Debug\\CLI\\Debug\\elyrium.exe"
             },
             "osx": {
                 "MIMode": "lldb",
-                "program": "${workspaceFolder}/out/build/Debug/Elyrium/Elyrium"
+                "program": "${workspaceFolder}/out/build/Debug/CLI/elyrium"
             }
         }
     ]

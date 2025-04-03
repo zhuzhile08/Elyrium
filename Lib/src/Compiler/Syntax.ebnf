@@ -1,0 +1,129 @@
+(* Elyrium Syntax *)
+(* Unused by the compiler, simply used as a reference *)
+(* 1.0: Lexical expressions *)
+
+bin-digit                   = "0" | "1";
+oct-digit                   = "0".."7";
+dec-digit                   = "0".."9";
+hex-digit                   = "0".."9" | "a".."f" | "A".."F";
+letter                      = "a".."z" | "A".."Z";
+symbol                      = ";" | "." | "," | ":" | "(" | ")" | "{" | "}" | "[" | "]" | "^" | "~"
+                            | "|" | "&" | "+" | "-" | "*" | "/" | "%" | "=" | ">" | "<" | "!" | " "
+                            | "\t" | "\n" | "\r" | "\f" | "\v" | """ | "'" | "\" | "\b" | "\0";
+escape-seq                  = "\" ( "t" | "n" | "r" | "f" | "v" | """ | "'" | "\" | "b" | "0"
+                            | ("x" hex_digit [hex-digit] )
+                            | ("u" hex_digit [hex-digit] [hex-digit] )
+                            | ("U" hex_digit [hex-digit] [hex-digit] [hex-digit] ) );
+dec-digit-chain             = dec-digit { dec-digit | ( "_" dec-digit ) };
+
+character                   = "'" unicode - "'" | escape "'";
+string-literal              = """ { unicode - """ | escape-seq } """;
+integral                    = [ "+" | "-" ] ( bin-digit { bin-digit | ( "_" bin-digit ) }
+                                            | oct-digit { oct-digit | ( "_" oct-digit ) }
+                                            | dec-digit-chain
+                                            | hex-digit { hex-digit | ( "_" hex-digit ) } ) ["u"];
+floating                    = [ "+" | "-" ] ( ( [ dec-digit-chain ] "." dec-digit-chain )
+                                            | ( dec-digit-chain [ "." dec-digit-chain ] )
+                                            [ "e" [ "+" | "-" ] dec-digit ] ["f"] );
+
+keywords                    = "null" | "move" | "true" | "false" | "if" | "else" | "for" | "while" | "do" | "break"
+							| "return" | "yield" | "let" | "ptr" | "const" | "global" | "func" | "namespace" | "coroutine"
+							| "class" | "enum" | "type" | "import" | "raise" | "try" | "catch" | "this";
+identifier                  = ( unicode - symbol - dec-digit ) { unicode - symbol } - keywords;
+
+
+(* 1.1: Utility *)
+
+type-identifier             = identifier [ "[" type-identifier { "," type-identifier } "]" ];
+identifier-decl             = identifier [ ":" type-identifier ] [ "=" expression ];
+optional-storage-ident      = [ storage-class-specifiers ] identifier-decl;
+
+parameters                  = "(" [ optional-storage-ident { "," optional-storage-ident } ] ")";
+arguments                   = "(" [ expression { "," expression } ] ")";
+subscript                   = "[" expression "]";
+
+storage-class-specifiers    = "let" | "const" | "global" | "ptr";
+
+
+(* 1.2: Declaration *)
+
+declaration                 = namespace-decl | object-decl;
+object-decl                 = variable-decl | function-decl | courutine-decl | special-function-decl | class-decl | enum-decl;
+
+namespace-decl              = "namespace" [ identifier ] "{" { object-decl } "}";
+type-alias-decl             = "type" identifier "=" type-identifier ";";
+variable-decl               = storage-class-specifiers identifier-decl { "," identifier-decl } ";";
+function-decl               = "func" identifier parameters block-stmt;
+courutine-decl              = "coroutine" identifier parameters block-expr;
+special-function-decl       = identifier parameters block-stmt;
+class-decl                  = "class" identifier "{" { object-decl } "}";
+enum-decl                   = "enum" identifier "{" { identifier [ "=" identifier | expression ] } "}";
+
+
+(* 1.2: Statements *)
+
+statement                   = ";" | object-decl | if-stmt | for-stmt | while-stmt | return-stmt | expr-stmt | block-stmt;
+
+expr-stmt                   = expression ";";
+if-stmt                     = "if" "(" [ statement ";" ] expression ")" statement;
+for-stmt                    = "for" "(" ( [ statement ] ";" [ expression ] ";" [ expression ] )
+                                      | ( storage-class-specifiers parameters ":" expression ) ")" statement;
+while-stmt                  = "while" "(" [ statement ";" ] expression ")" statement;
+return-stmt                 = "return" expression ";";
+block-stmt                  = "{" { statement } "}";
+
+yield-stmt                  = "yield" expression ";";
+
+
+(* 1.2: Expressions *)
+
+expression                  = assignment | special-expressions;
+
+member                      = identifier { ( "." identifier [ arguments | subscript ] )
+                                         | arguments | subscript };
+
+numerical                   = "null" | character | integral | floating | member;
+logical                     = "true" | "false";
+
+atomic-numeric-expr         = ( [ "+" | "-" ] [ "~" ] numerical | ( "(" expression ")" ) [ "++" | "--" ] )
+                            | ( [ "++" | "--" ] ( member | ( "(" expression ")" ) ) );
+logical-unary               = [ "+" | "-" ] [ "~" | "!" ] ( logical | ( "(" expression ")" ) );
+pointer-unary               = "&" ( member | "(" expression ")" );
+
+factor                      = atomic-numeric-expr { ( "*" | "/" | "%" ) atomic-numeric-expr };
+term                        = (factor | pointer-unary | logical-unary) { ( "+" | "-" ) (factor | pointer-unary | logical-unary) };
+shift                       = term { ( "<<" | ">>" ) term };
+
+comparison                  = shift { ( "<" | "<=" | "<=>" | ">" | ">=" ) shift };
+equality                    = comparison { ( "==" | "!=" ) logical-unary };
+
+bitwise-and                 = equality { "&" equality };
+bitwise-xor                 = bitwise-and { "^" bitwise-and };
+bitwise-or                  = bitwise-xor { "|" bitwise-or };
+
+logical-and                 = bitwise-or { "&&" bitwise-or };
+logical-or                  = logical-and { "||" logical-and };
+
+assignment                  = member ( "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "<<=" | ">>=" | "move") logical-or | assignment;
+
+
+(* 1.2.1: Special expressions *)
+
+special-expressions         = generator-expr | if-expr | for-expr | while-expr;
+
+generator-expr              = "{" { statement - return-stmt | special-expressions } ( special-expressions | yield-stmt ) "}";
+
+if-expr                     = "if" "(" [ statement ";" ] expression ")" special-expressions | yield-stmt;
+for-expr                    = "for" "(" ( [ statement ] ";" [ expression ] ";" [ expression ] )
+                                      | ( storage-class-specifiers parameters ":" expression ) ")" special-expressions | yield-stmt;
+while-expr                  = "while" "(" [ statement ";" ] expression ")" special-expressions | yield-stmt;
+
+
+(* 1.3: File and modules *)
+
+program                     = main { module };
+
+module                      = { namespace-decl | statement };
+main                        = "__main__" "(" ")" "{" { statement } "}"
+
+

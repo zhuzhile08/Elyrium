@@ -39,7 +39,6 @@
 /.vscode/*
 /out
 /.vs
-/lib
 /data/log/
 
 # files
@@ -49,7 +48,3 @@ imgui.ini
 
 # exceptions
 !.vscode/launch.json
-
-# data files
-*.dat
-*.spv
