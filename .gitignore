@@ -40,11 +40,13 @@
 /out
 /.vs
 /data/log/
+/.cache
 
 # files
 CMakeSettings.json
 CMakePresets.json
 imgui.ini
+/compile_commands.json
 
 # exceptions
 !.vscode/launch.json
