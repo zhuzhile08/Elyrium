@@ -17,8 +17,6 @@
 
 #include <LSD/String.h>
 
-#include <initializer_list>
-
 namespace elyrium {
 
 namespace compiler {
@@ -26,35 +24,58 @@ namespace compiler {
 class Parser {
 private:
 	enum class Precedence {
-		base,
-		assign = base,
+		assign,
+		assignLeft = assign,
+		assignRight,
 		logicOr,
 		logicAnd,
-		bitXor,
 		bitOr,
+		bitXOr,
 		bitAnd,
 		equality,
 		comparison,
+		spaceship,
 		shift,
 		term,
 		factor,
 		unary,
 		member,
 		atomic,
-		brace
 	};
 
 public:
-	Parser(lsd::String&& source, lsd::String&& path);
+	Parser(lsd::StringView source, lsd::StringView path);
+
+	ast::expr_ptr parse() {
+		return parseExpression();
+	}
+
+	[[nodiscard]] const Token& current() const noexcept {
+		return m_current;
+	}
+	Token& next() {
+		return (m_current = m_lexer.nextToken());
+	}
 
 private:
-	lsd::String m_path;
-	lsd::String m_source;
+	lsd::StringView m_path;
+	lsd::StringView m_source;
 
 	Lexer m_lexer;
 	Token m_current;
 
-	ast::expr_ptr parseExpression(Precedence precedence = Precedence::base);
+
+	// Expression parsers
+
+	ast::expr_ptr parseExpression(Precedence precedence = Precedence::atomic, ast::expr_ptr&& expr = nullptr);
+	ast::expr_ptr parseUnaryExpression();
+	ast::expr_ptr parseAtomicMemberExpression();
+	ast::infix_ptr parseInfixExpression(ast::expr_ptr&& rightExpr);
+
+
+	// Statement parsers
+	
+	ast::expr_ptr parseStatement();
 };
 
 } // namespace compiler

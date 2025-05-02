@@ -11,7 +11,8 @@ set (ELYRIUM_LIB_SOURCE_FILES
 
 	"src/Compiler/Token.cpp"
 	"src/Compiler/Lexer.cpp"
-	# "src/Compiler/Parser.cpp"
+	"src/Compiler/AST.cpp"
+	"src/Compiler/Parser.cpp"
 )
 
 if (BUILD_STATIC)

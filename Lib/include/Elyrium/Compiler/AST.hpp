@@ -15,6 +15,7 @@
 
 #include <Elyrium/Compiler/Token.hpp>
 
+#include <cassert>
 #include <variant>
 
 namespace elyrium {
@@ -34,11 +35,34 @@ enum class ExprType {
 };
 
 
-// General types
+// General types and forward declarations
 
 class Statement { };
+
+
+
 class ObjectDecl : Statement { };
-class Expression { };
+
+
+
+class Expression {
+public:
+	Expression() = default;
+	virtual ~Expression() { }
+
+	virtual void bindRight(lsd::UniquePointer<Expression>&&);
+	virtual void print(int level) const = 0;
+};
+
+class AtomicExpr;
+class MemberExpr;
+class UnaryExpr;
+class InfixExpr;
+
+using atomic_ptr = lsd::UniquePointer<AtomicExpr>;
+using member_ptr = lsd::UniquePointer<MemberExpr>;
+using unary_ptr = lsd::UniquePointer<UnaryExpr>;
+using infix_ptr = lsd::UniquePointer<InfixExpr>;
 
 
 // Base pointer aliases
@@ -83,18 +107,32 @@ using subscript_t = expr_ptr;
 
 // Expressions
 
-class AtomicExpr : Expression {
+class AtomicExpr : public Expression {
+public:
+	AtomicExpr(const Token& identifier) : m_value(identifier) { }
+
+	void print(int indent) const;
+
+private:
+	Token m_value;
+};
+
+class MemberExpr : public Expression {
 public:
 	struct NullAccess { };
 
-	AtomicExpr(const Token& value) : m_value(value.data()) { }
+	MemberExpr(expr_ptr&& expr) : m_value(std::move(expr)) { }
+
+	static expr_ptr simplify(member_ptr&& expr);
 
 	void pushCall(detail::arg_t&& args);
 	void pushSubscript(detail::subscript_t&& expr);
 	void pushMember(const Token& identifier);
 
+	void print(int indent) const;
+
 private:
-	lsd::StringView m_value;
+	expr_ptr m_value;
 
 	lsd::Vector<std::variant<
 		detail::arg_t, // Member call
@@ -103,53 +141,35 @@ private:
 		>> m_chain;
 };
 
-class UnaryExpr : Expression {
+class UnaryExpr : public Expression {
 public:
+	UnaryExpr() = default;
 
+	static expr_ptr simplify(unary_ptr&& expr);
+
+	void pushPrefix(const Token& op);
+	void bindExpr(expr_ptr&& expr);
+	void setPostfix(const Token& op);
+
+	void print(int indent) const;
 
 private:
-	lsd::Vector<Token::Type> m_prefix;
+	lsd::Vector<Token> m_prefix;
 	expr_ptr m_expr;
-	lsd::Vector<Token::Type> m_postfix;
+	Token m_postfix;
 };
 
-class Factor : Expression {
+class InfixExpr : public Expression {
 public:
+	InfixExpr(const Token& op, expr_ptr&& expr);
 
+	void bindRight(expr_ptr&& expr);
+	
+	void print(int indent) const;
 
 private:
 	expr_ptr m_left;
-	Token::Type m_operator;
-	expr_ptr m_right;
-};
-
-class Term : Expression {
-public:
-
-
-private:
-	expr_ptr m_left;
-	Token::Type m_operator;
-	expr_ptr m_right;
-};
-
-class LogicalExpr : Expression {
-public:
-
-
-private:
-	expr_ptr m_left;
-	Token::Type m_operator;
-	expr_ptr m_right;
-};
-
-class AssignmentExpr : Expression {
-public:
-
-
-private:
-	expr_ptr m_left;
-	Token::Type m_operator;
+	Token m_operator;
 	expr_ptr m_right;
 };
 

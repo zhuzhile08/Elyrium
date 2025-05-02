@@ -13,13 +13,6 @@ else ()
 endif()
 
 
-# MacOS compiler path
-if (APPLE)
-	set( CMAKE_CXX_COMPILER "/usr/bin/clang++" )
-	set( CMAKE_C_COMPILER "/usr/bin/clang" )
-endif()
-
-
 # Dependencies path
 set(LIBRARY_PATH ${CMAKE_SOURCE_DIR}/Deps)
 

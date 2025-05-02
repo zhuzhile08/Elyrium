@@ -1,4 +1,3 @@
-#include <stdexcept>
 #include <cstdio>
 #include <chrono>
 #include <filesystem>
@@ -9,6 +8,7 @@
 #include "Config.hpp"
 
 #include <Elyrium/Compiler/Lexer.hpp>
+#include <Elyrium/Compiler/Parser.hpp>
 
 namespace {
 
@@ -21,19 +21,25 @@ int runCmdEnv() {
 
 		auto c = std::getchar();
 		while(c != '\n' && c != EOF) {
-			inputBuffer.push_back(c);
+			inputBuffer.pushBack(c);
 			c = std::getchar();
 		}
 
 		if (inputBuffer == "__EXIT_CLI__") break;
 
-		elyrium::compiler::Lexer lexer(inputBuffer, "");
+		elyrium::compiler::Parser parser(inputBuffer.data(), "stdin");
 
-		std::printf("Tokens: ");
+		auto expr = parser.parse();
+		expr->print(0);
+
+		/*
+		elyrium::compiler::Lexer lexer(inputBuffer.data(), "stdin");
+
 		for (elyrium::compiler::Token tok = lexer.nextToken();
-			 tok.type() != elyrium::compiler::Token::Type::eof &&
-			 tok.type() != elyrium::compiler::Token::Type::invalid;
-			 tok = lexer.nextToken()) std::printf("%s", tok.stringify().data());
+			 tok.type() != elyrium::compiler::Token::Type::eof;
+			 tok = lexer.nextToken()) std::printf("%s\n", tok.stringify().data());
+		*/
+
 		std::printf("\n");
 
 		std::fflush(stdin);

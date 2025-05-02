@@ -2,12 +2,11 @@
 
 #include <Elyrium/Core/Error.hpp>
 
-#include <LSD/UnorderedSparseMap.h>
+#include <LSD/UnorderedFlatMap.h>
 
 
 #define REPORT_INV_NUM { \
-	error::report(m_path, m_line, m_column, currentLine(), error::Type::syntaxError, error::Message::invalidNumericLiteral); \
-	m_good = false; \
+	throw SyntaxError(m_path, m_line, m_column, currentLine(), error::Message::invalidNumericLiteral); \
 	return Token(); \
 }
 
@@ -31,9 +30,8 @@ namespace compiler {
 
 Token Lexer::nextToken() {
 	if (m_iter == m_source.end()) return Token(Token::Type::eof);
-
-	if (!m_good || !skipEmpty())
-		return Token();
+	skipEmpty();
+	if (m_iter == m_source.end()) return Token(Token::Type::eof);
 
 	switch (*m_iter) {
 		// Strings
@@ -68,7 +66,7 @@ Token Lexer::nextToken() {
 						continue;
 
 					case '\\':
-						if (!verifyEscapeSequence()) break;
+						verifyEscapeSequence();
 
 					default:
 						m_column += 1;
@@ -78,8 +76,7 @@ Token Lexer::nextToken() {
 			}
 
 			if (!finishedParsing) {
-				error::report(m_path, m_line, m_column, currentLine(), error::Type::syntaxError, error::Message::unclosedStringQuotes);
-				m_good = false;
+				throw SyntaxError(m_path, m_line, m_column, currentLine(), error::Message::unclosedStringQuotes);
 
 				break;
 			}
@@ -96,31 +93,27 @@ Token Lexer::nextToken() {
 
 			switch (c) {
 				case '\0':
-					error::report(m_path, m_line, m_column, currentLine(), error::Type::syntaxError, error::Message::unclosedCharQuotes);
-					m_good = false;
+					throw SyntaxError(m_path, m_line, m_column, currentLine(), error::Message::unclosedCharQuotes);
 
 					break;
 
 				case '\'':
-					error::report(m_path, m_line, m_column, currentLine(), error::Type::syntaxError, error::Message::emptyChar);
-					m_good = false;
+					throw SyntaxError(m_path, m_line, m_column, currentLine(), error::Message::emptyChar);
 
 					break;
 
 				case '\n':
 				case '\t':
-					error::report(m_path, m_line, m_column, currentLine(), error::Type::syntaxError, error::Message::unescapedChar);
-					m_good = false;
+					throw SyntaxError(m_path, m_line, m_column, currentLine(), error::Message::unescapedChar);
 
 					break;
 
 				case '\\':
-					if (!verifyEscapeSequence()) break;
+					verifyEscapeSequence();
 
 				default:
 					if (auto c = next(); c == '\0' || c == '\'') {
-						error::report(m_path, m_line, m_column, currentLine(), error::Type::syntaxError, error::Message::unclosedCharQuotes);
-						m_good = false;
+						throw SyntaxError(m_path, m_line, m_column, currentLine(), error::Message::unclosedCharQuotes);
 
 						break;
 					}
@@ -188,13 +181,13 @@ Token Lexer::nextToken() {
 			return singleCharEqualTok(Token::Type::logicNot, Token::Type::notEqual);
 
 		case '&':
-			return singleCharEqualTok(Token::Type::bitAnd, Token::Type::assignBitwAnd);
+			return singleCharEqualTok(Token::Type::bitAnd, Token::Type::assignBitAnd);
 
 		case '~':
-			return singleCharEqualTok(Token::Type::bitNot, Token::Type::assignBitwNot);
+			return singleCharEqualTok(Token::Type::bitNot, Token::Type::assignBitNot);
 
 		case '^':
-			return singleCharEqualTok(Token::Type::bitXor, Token::Type::assignBitwXor);
+			return singleCharEqualTok(Token::Type::bitXOr, Token::Type::assignBitXOr);
 
 
 		// More complicated cases
@@ -205,11 +198,53 @@ Token Lexer::nextToken() {
 		case '-':
 			return singleCharEqualOrDoubleCharTok(Token::Type::sub, Token::Type::decrement, Token::Type::assignSub);
 
-		case '<':
-			return singleCharEqualOrDoubleCharEqualTok(Token::Type::less, Token::Type::shiftLeft, Token::Type::lessEqual, Token::Type::assignShiftLeft);
 
-		case '>':
-			return singleCharEqualOrDoubleCharEqualTok(Token::Type::greater, Token::Type::shiftRight, Token::Type::lessEqual, Token::Type::assignShiftRight);
+		case '>': {
+			auto begin = m_iter;
+			auto col = m_column++;
+
+			if (auto c = *m_iter, n = next(); n == c) {
+				if (auto n = next(); n == '=') {
+					next();
+
+					return Token(Token::Type::assignShiftRight, { begin, m_iter }, m_line, col);
+				}
+
+				return Token(Token::Type::shiftRight, { begin, m_iter }, m_line, col);
+			} else if (n == '=') {
+				next();
+
+				return Token(Token::Type::greaterEqual, { begin, m_iter }, m_line, col);
+			}
+
+			return Token(Token::Type::greater, { begin, m_iter }, m_line, col);
+		}
+
+		case '<': { // Most complex operator case, as it may parse to <, <=, <=>, <<, <<=
+			auto begin = m_iter;
+			auto col = m_column++;
+
+			if (auto c = *m_iter, n = next(); n == c) {
+				if (auto n = next(); n == '=') {
+					next();
+
+					return Token(Token::Type::assignShiftRight, { begin, m_iter }, m_line, col);
+				}
+
+				return Token(Token::Type::shiftRight, { begin, m_iter }, m_line, col);
+			} else if (n == '=') {
+				if (auto n = next(); n == '>') {
+					next();
+
+					return Token(Token::Type::spaceship, { begin, m_iter }, m_line, col);
+				}
+
+				return Token(Token::Type::greaterEqual, { begin, m_iter }, m_line, col);
+			}
+
+			return Token(Token::Type::greater, { begin, m_iter }, m_line, col);
+		}
+
 
 
 		// Remaining literals, keywords and identifiers
@@ -241,7 +276,7 @@ Token Lexer::doubleCharTok(Token::Type singleChar, Token::Type doubleChar) {
 	auto begin = m_iter;
 	auto col = m_column++;
 
-	if (auto c = *m_iter, n = next(); n != '\0' && n == c) {
+	if (auto c = *m_iter, n = next(); n == c) {
 		next();
 		
 		return Token(doubleChar, { begin, m_iter }, m_line, col);
@@ -254,7 +289,7 @@ Token Lexer::singleCharEqualTok(Token::Type singleChar, Token::Type equal) {
 	auto begin = m_iter;
 	auto col = m_column++;
 
-	if (auto n = next(); n != '\0' && n == '=') {
+	if (auto n = next(); n == '=') {
 		next();
 
 		return Token(equal, { begin, m_iter }, m_line, col);
@@ -267,33 +302,14 @@ Token Lexer::singleCharEqualOrDoubleCharTok(Token::Type singleChar, Token::Type 
 	auto begin = m_iter;
 	auto col = m_column++;
 
-	if (auto c = *m_iter, n = next(); n != '\0' && n == c)
-		return Token(doubleChar, { begin, m_iter }, m_line, col);
-	else if (n == '=') {
+	if (auto c = *m_iter, n = next(); n == c) {
 		next();
-
-		return Token(equal, { begin, m_iter }, m_line, col);
-	}
-
-	return Token(singleChar, { begin, m_iter }, m_line, col);
-}
-
-Token Lexer::singleCharEqualOrDoubleCharEqualTok(Token::Type singleChar, Token::Type doubleChar, Token::Type singleEqual, Token::Type doubleEqual) {
-	auto begin = m_iter;
-	auto col = m_column++;
-
-	if (auto c = *m_iter, n = next(); n != '\0' && n == c) {
-		if (auto n = next(); n != '\0' && n == '=') {
-			next();
-
-			return Token(doubleEqual, { begin, m_iter }, m_line, col);
-		}
 
 		return Token(doubleChar, { begin, m_iter }, m_line, col);
 	} else if (n == '=') {
 		next();
 
-		return Token(singleEqual, { begin, m_iter }, m_line, col);
+		return Token(equal, { begin, m_iter }, m_line, col);
 	}
 
 	return Token(singleChar, { begin, m_iter }, m_line, col);
@@ -369,7 +385,7 @@ Token Lexer::numericLiteral(bool guaranteedFloat) {
 }
 
 Token Lexer::keywordOrIdentifier() {
-	static const lsd::UnorderedSparseMap<lsd::StringView, Token::Type> lookup {
+	static const lsd::UnorderedFlatMap<lsd::StringView, Token::Type> lookup {
 		{ "null", Token::Type::kNull },
 		{ "move", Token::Type::kMove },
 		{ "true", Token::Type::kTrue },
@@ -453,26 +469,20 @@ Token Lexer::keywordOrIdentifier() {
 	return Token(Token::Type::identifier, value, m_line, col);
 }
 
-bool Lexer::verifyEscapeSequence() {
+void Lexer::verifyEscapeSequence() {
 	switch (next()) {
 		default:
-			error::report(m_path, m_line, m_column, currentLine(), error::Type::syntaxError, error::Message::invalidEscape);
-
-			return m_good = false;
+			throw SyntaxError(m_path, m_line, m_column, currentLine(), error::Message::invalidEscape);
 
 		case '\0':
-			error::report(m_path, m_line, m_column, currentLine(), error::Type::syntaxError, error::Message::unclosedCharQuotes);
-
-			return m_good = false;
+			throw SyntaxError(m_path, m_line, m_column, currentLine(), error::Message::unclosedCharQuotes);
 
 		case 'x':
 		case 'u':
 		case 'U':
 			if (std::isxdigit(next())) {
-				return true;
+				return;
 			}
-
-			return m_good = false;
 
 		case 'b':
 		case 'e':
@@ -484,13 +494,13 @@ bool Lexer::verifyEscapeSequence() {
 		case '\\':
 		case '\'':
 		case '"':
-			return true;
+			return;
 	}
 }
 
 
-bool Lexer::skipEmpty() {
-	bool blockCommentMode = false;
+void Lexer::skipEmpty() {
+	size_type blockCommentMode = 0;
 
 	char c = *m_iter;
 	do {
@@ -508,12 +518,10 @@ bool Lexer::skipEmpty() {
 				break;
 
 			case '/': {
-				if (blockCommentMode) break;
-
 				auto it = m_iter + 1;
 				if (it == m_source.end()) break;
 
-				if (c = *it; c == '/') {
+				if (c = *it; c == '/' && blockCommentMode == 0) {
 					++m_line;
 					m_column = 0;
 
@@ -522,53 +530,46 @@ bool Lexer::skipEmpty() {
 
 					break;
 				} else if (c == '*') {
-					next();
-					blockCommentMode = true;
+					blockCommentMode += 1;
 
 					break;
 				}
 
-				return true;
+				return;
 			}
 
 			case '*':
-				if (blockCommentMode) {
+				if (blockCommentMode > 0) {
 					auto it = m_iter + 1;
 					if (it == m_source.end()) break;
 
 					if (*it == '/') {
 						next();
-						next();
 
-						blockCommentMode = false;
+						--blockCommentMode;
 					}
 
 					break;
 				}
 
-				return true;
+				return;
 
 			default:
 				if (blockCommentMode) break;
 
-				return true;
+				return;
 		}
 	} while ((c = next()) != '\0');
 
-	if (blockCommentMode) {
-		error::report(m_path, m_line, m_column, currentLine(), error::Type::syntaxError, error::Message::unclosedBlockComment);
-		return m_good = false;
-	}
-
-	return true;
+	if (blockCommentMode != 0)
+		throw SyntaxError(m_path, m_line, m_column, currentLine(), error::Message::unclosedBlockComment);
 }
 
 char Lexer::next() {
 	if (++m_iter == m_source.end()) return '\0';
 
 	if (*m_iter == '\0') {
-		error::report(m_path, m_line, m_column, currentLine(), error::Type::syntaxError, error::Message::disallowedChar);
-		m_good = false;
+		throw SyntaxError(m_path, m_line, m_column, currentLine(), error::Message::disallowedChar);
 
 		return '\0';
 	}

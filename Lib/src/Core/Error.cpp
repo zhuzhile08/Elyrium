@@ -1,63 +1,55 @@
 #include <Elyrium/Core/Error.hpp>
 
-#include <LSD/UnorderedSparseMap.h>
+#include <LSD/UnorderedDenseMap.h>
 #include <LSD/String.h>
 
 #include <cstdio>
 
+#define ELYRIUM_ERROR_MSG(str) "File \"%s\", line %zu:%zu:\n   |%s\n\t%*c\n"": %s!\n"
+
 namespace elyrium {
 
-namespace error {
-
-void report(lsd::StringView filename, size_type lineCount, size_type column, lsd::StringView line, Type type, Message message) {
-	static lsd::UnorderedSparseMap<Type, const char*> errorType({
-		{ Type::syntaxError, "Syntax Error" }
-	});
-
-	static lsd::UnorderedSparseMap<Message, const char*> errorMsg({
-		{ Message::invalidSyntax, "Invalid syntax" },
-		{ Message::invalidNumericLiteral, "Invalid numeric literal" },
-		{ Message::disallowedChar, "Disallowed character in code" },
-		{ Message::unescapedChar, "Unescaped special character" },
-		{ Message::invalidEscape, "Invalid escape sequence" },
-		{ Message::emptyChar, "Character can't be empty" },
-		{ Message::unclosedCharQuotes, "Character quotes weren't closed" },
-		{ Message::unclosedStringQuotes, "String quotes weren't closed" },
-		{ Message::unclosedParen, "Parenthesies weren't closed" },
-		{ Message::unclosedBrace, "Braces weren't closed" },
-		{ Message::unclosedBracket, "Brackets weren't closed" },
-		{ Message::unclosedBlockComment, "Block comment wasn't closed" }
-	});
-
-	std::fprintf(stderr, "File \"%s\", line %zu:%zu:\n   |%s\n\t%*c\n%s: %s!", 
-		filename.data(), 
-		lineCount,
-		column,
-		line.data(),
-		static_cast<int>(column),
-		'^',
-		errorType.at(type),
-		errorMsg.at(message));
-}
-
-} // namespace error
-
-
-// Internal system exceptions
-
 SyntaxError::SyntaxError(
 	lsd::StringView fileName, 
-	size_type lineCount, 
-	lsd::StringView line, 
-	const lsd::String& message) : ElyriumError(message) {
-	
-}
-SyntaxError::SyntaxError(
-	lsd::StringView fileName, 
-	size_type lineCount, 
-	lsd::StringView line, 
-	const char* message) : ElyriumError(message) {
-	
+	size_type line, 
+	size_type column,
+	lsd::StringView lineSource, 
+	error::Message message) {
+	static const lsd::UnorderedDenseMap<error::Message, const char*> errorMsg({
+		{ error::Message::invalidSyntax, "Invalid syntax" },
+		{ error::Message::invalidNumericLiteral, "Invalid numeric literal" },
+		{ error::Message::disallowedChar, "Disallowed character in code" },
+		{ error::Message::unescapedChar, "Unescaped special character" },
+		{ error::Message::invalidEscape, "Invalid escape sequence" },
+		{ error::Message::emptyChar, "Character can't be empty" },
+		{ error::Message::unclosedCharQuotes, "Character quotes weren't closed" },
+		{ error::Message::unclosedStringQuotes, "String quotes weren't closed" },
+		{ error::Message::unclosedParen, "Parenthesies weren't closed" },
+		{ error::Message::unclosedBrace, "Braces weren't closed" },
+		{ error::Message::unclosedBracket, "Brackets weren't closed" },
+		{ error::Message::unclosedBlockComment, "Block comment wasn't closed" },
+		{ error::Message::expectedExpression, "Expected expression" },
+		{ error::Message::expectedIdentifier, "Expected indentifier" },
+	});
+
+	size_type len = std::snprintf(nullptr, 0, ELYRIUM_ERROR_MSG("Syntax error"), 
+								  fileName.data(),
+								  line,
+								  column,
+								  lineSource.data(),
+								  static_cast<int>(column),
+								  '^',
+								  errorMsg.at(message));
+
+	m_message.resize(len);
+	std::snprintf(m_message.data(), len, ELYRIUM_ERROR_MSG("Syntax error"),
+				  fileName.data(),
+				  line,
+				  column,
+				  lineSource.data(),
+				  static_cast<int>(column),
+				  '^',
+				  errorMsg.at(message));
 }
 
 } // namespace elyrium

@@ -28,10 +28,6 @@ public:
 
 	Token nextToken();
 
-	[[nodiscard]] bool good() const noexcept {
-		return m_good;
-	}
-
 private:
 	lsd::StringView m_path;
 
@@ -41,20 +37,18 @@ private:
 	size_type m_line { };
 	size_type m_column { };
 
-	bool m_good = true;
 
 	Token singleCharTok(Token::Type type);
 	Token doubleCharTok(Token::Type singleChar, Token::Type doubleChar);
 	Token singleCharEqualTok(Token::Type singleChar, Token::Type equal);
 	Token singleCharEqualOrDoubleCharTok(Token::Type singleChar, Token::Type doubleChar, Token::Type equal);
-	Token singleCharEqualOrDoubleCharEqualTok(Token::Type singleChar, Token::Type doubleChar, Token::Type singleEqual, Token::Type doubleEqual);
 
 	Token numericLiteral(bool guaranteedFloat);
 	Token keywordOrIdentifier();
 
-	bool verifyEscapeSequence();
+	void verifyEscapeSequence();
 
-	bool skipEmpty();
+	void skipEmpty();
 	char next();
 
 	lsd::String currentLine();

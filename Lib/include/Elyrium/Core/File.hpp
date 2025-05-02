@@ -15,7 +15,7 @@
 #include <LSD/SharedPointer.h>
 #include <LSD/Vector.h>
 #include <LSD/String.h>
-#include <LSD/UnorderedSparseMap.h>
+#include <LSD/UnorderedDenseMap.h>
 
 namespace elyrium {
 

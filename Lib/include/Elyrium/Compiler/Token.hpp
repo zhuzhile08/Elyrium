@@ -5,7 +5,6 @@
  * @brief Token to be used for the parser
  * 
  * @date 2024-06-08
- * 
  * @copyright Copyright (c) 2024
  *************************/
 
@@ -22,10 +21,10 @@ namespace compiler {
 
 class Token {
 public:
-	using type_tag = uint8;
+	using type_tag = size_type;
 
 	enum class Type : type_tag {
-		invalid,
+		none,
 		eof,
 
 		// Single character special symbols
@@ -45,7 +44,7 @@ public:
 		bracketRight,           // ]
 
 		// Bitwise operators
-		bitXor,                 // ^
+		bitXOr,                 // ^
 		bitNot,                 // ~
 		bitOr,                  // |
 		bitAnd,                 // &
@@ -72,6 +71,7 @@ public:
 		notEqual,          		// !=
 		greaterEqual,           // >=
 		lessEqual,              // <=
+		spaceship,				// <=>
 		logicOr,                // ||
 		logicAnd,               // &&
 
@@ -89,10 +89,10 @@ public:
 		shiftRight,             // >>
 		assignShiftLeft,        // <<=
 		assignShiftRight,       // >>=
-		assignBitwXor,          // ^=
-		assignBitwNot,          // ~=
-		assignBitwOr,           // |=
-		assignBitwAnd,          // &=
+		assignBitXOr,          // ^=
+		assignBitNot,          // ~=
+		assignBitOr,           // |=
+		assignBitAnd,          // &=
 
 
 		// Keywords
@@ -148,8 +148,6 @@ public:
 
 		// Identifier
 		identifier,
-
-		none = type_tag(-1)
 	};
 
 	Token() = default;
@@ -157,12 +155,19 @@ public:
 	Token(Type type, lsd::StringView data, size_type line, size_type column) : m_type(type), m_data(data), m_line(line), m_column(column) { }
 
 	lsd::String stringify() const;
+	lsd::StringView lineSource() const noexcept;
 
 	[[nodiscard]] Type type() const noexcept {
 		return m_type;
 	}
 	[[nodiscard]] lsd::StringView data() const noexcept {
 		return m_data;
+	}
+	[[nodiscard]] size_type line() const noexcept {
+		return m_line;
+	}
+	[[nodiscard]] size_type column() const noexcept {
+		return m_column;
 	}
 
 private:
