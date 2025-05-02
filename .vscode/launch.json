@@ -1,12 +1,9 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
             "name": "elyrium-cli",
-            "type": "cppdbg",
+            "type": "codelldb",
             "request": "launch",
             "args": [],
             "stopAtEntry": false,
@@ -14,14 +11,12 @@
             "environment": [],
             "externalConsole": true,
             "windows": {
-                "MIMode": "gdb",
                 "program": "${workspaceFolder}\\out\\build\\Debug\\CLI\\Debug\\elyrium.exe"
             },
             "osx": {
-                "MIMode": "lldb",
                 "program": "${workspaceFolder}/out/build/Debug/CLI/elyrium"
             }
         }
     ]
-
 }
+
