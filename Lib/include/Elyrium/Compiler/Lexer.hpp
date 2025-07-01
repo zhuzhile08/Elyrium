@@ -12,6 +12,7 @@
 #pragma once
 
 #include <Elyrium/Core/Common.hpp>
+#include <Elyrium/Core/Error.hpp>
 
 #include <Elyrium/Compiler/Token.hpp>
 
@@ -37,6 +38,7 @@ private:
 	size_type m_line { };
 	size_type m_column { };
 
+	void throwSyntaxError(error::Message message, char expected = '\0');
 
 	Token singleCharTok(Token::Type type);
 	Token doubleCharTok(Token::Type singleChar, Token::Type doubleChar);
@@ -51,7 +53,7 @@ private:
 	void skipEmpty();
 	char next();
 
-	lsd::String currentLine();
+	lsd::String currentLine(std::size_t& additionalSpaces);
 };
 
 } // namespace compiler

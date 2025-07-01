@@ -54,6 +54,7 @@ public:
 		add,                    // +
 		sub,                    // -
 		mul,                    // *
+		pointer = mul,
 		div,                    // /
 		mod,                    // %
 		assign,                 // =
@@ -89,10 +90,10 @@ public:
 		shiftRight,             // >>
 		assignShiftLeft,        // <<=
 		assignShiftRight,       // >>=
-		assignBitXOr,          // ^=
-		assignBitNot,          // ~=
-		assignBitOr,           // |=
-		assignBitAnd,          // &=
+		assignBitXOr,           // ^=
+		assignBitNot,           // ~=
+		assignBitOr,            // |=
+		assignBitAnd,           // &=
 
 
 		// Keywords
@@ -110,17 +111,14 @@ public:
 		kIf,					// if
 		kElse,					// else
 		kFor,					// for
-		kWhile,					// while
 		kDo,					// do
 		kBreak,					// break
+		kContinue,				// continue
 		kReturn,				// return
 		kYield,					// yield
 
 		// Storage specifier
 		kLet,					// let
-		kConst,					// const
-		kGlobal,				// global
-		kPtr, 					// ptr
 
 		// Declarations
 		kFunc,					// func
@@ -148,6 +146,9 @@ public:
 
 		// Identifier
 		identifier,
+
+		// Attribute
+		attribute,
 	};
 
 	Token() = default;
@@ -155,7 +156,7 @@ public:
 	Token(Type type, lsd::StringView data, size_type line, size_type column) : m_type(type), m_data(data), m_line(line), m_column(column) { }
 
 	lsd::String stringify() const;
-	lsd::StringView lineSource() const noexcept;
+	lsd::String lineSource(std::size_t& additionalSpaces) const noexcept;
 
 	[[nodiscard]] Type type() const noexcept {
 		return m_type;
