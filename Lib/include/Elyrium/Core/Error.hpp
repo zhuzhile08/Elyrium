@@ -22,19 +22,23 @@ enum class Message {
 	// Syntax errors
 
 	invalidSyntax,
+
 	invalidNumericLiteral,
 	disallowedChar,
-	unescapedChar,
+
 	invalidEscape,
+	unescapedChar,
 	emptyChar,
-	unclosedCharQuotes,
-	unclosedStringQuotes,
-	unclosedParen,
-	unclosedBrace,
-	unclosedBracket,
+
 	unclosedBlockComment,
-	expectedExpression,
+
+	expectedDifferent,
 	expectedIdentifier,
+	expectedExpression,
+	expectedDeclaration,
+
+	noCatchBehindTry,
+	importDeclRequiresStrOrConst,
 };
 
 } // namespace error
@@ -42,17 +46,17 @@ enum class Message {
 
 // Native program internal exception
 
-class ElyriumError : public std::exception {
+class Exception : public std::exception {
 public:
-	ElyriumError() = default;
-	ElyriumError(lsd::String&& message) {
+	Exception() = default;
+	Exception(lsd::String&& message) {
 		m_message.append(message).pushBack('!');
 	}
-	ElyriumError(const ElyriumError&) = default;
-	ElyriumError(ElyriumError&&) = default;
+	Exception(const Exception&) = default;
+	Exception(Exception&&) = default;
 
-	ElyriumError& operator=(const ElyriumError&) = default;
-	ElyriumError& operator=(ElyriumError&&) = default;
+	Exception& operator=(const Exception&) = default;
+	Exception& operator=(Exception&&) = default;
 
 	const char* what() const noexcept override {
 		return m_message.cStr();
@@ -65,14 +69,15 @@ protected:
 
 // Syntax errors
 
-class SyntaxError : public ElyriumError {
+class SyntaxError : public Exception {
 public:
 	SyntaxError(
 		lsd::StringView fileName, 
 		size_type line,
 		size_type column,
 		lsd::StringView lineSource, 
-		error::Message message);
+		error::Message message,
+		char expected = '\0');
 };
 
 } // namespace elyrium
