@@ -12,10 +12,104 @@
 
 namespace {
 
+inline constexpr lsd::StringView code = " \
+/** \n\
+ * Brainfuck interpreter in ELyrium \n\
+ * \n\
+ * Serves as a early syntax and VM test \n\
+ * \n\
+ * /* Nested comments */ \n\
+ * // Nested comments \n\
+ */ \n\
+// ALso demonstrates some trailing comma placement \n\
+\n\
+import \"io\"; \n\
+\n\
+@const let SUCCESS = 0; \n\
+@const let FAILURE = -1; \n\
+\n\
+@const let MOD_256_BITMAP = 0xFF; \n\
+\n\
+@const let TAPE_LEN = 16384; \n\
+@const let STACK_LEN = 1024; \n\
+\n\
+let stack : arr[uint, STACK_LEN,]; \n\
+let ptr : uint = 0; \n\
+\n\
+func interpret(tape : str*,) : int { \n\
+	for (let iptr : uint, i : int,; iptr <= tape.size(); iptr++, i = tape[iptr]) { \n\
+		if (i == '<') { \n\
+			if (--ptr >= stack.size()) \n\
+				break; \n\
+		} else if (i == '>') { \n\
+			if (++ptr >= stack.size()) \n\
+				break; \n\
+		} else if (i == '+') \n\
+			++stack[ptr] &= MOD_256_BITMAP; \n\
+		else if (i == '-') \n\
+			--stack[ptr] &= MOD_256_BITMAP; \n\
+		else if (i == '.') \n\
+			std.io.putchar(stack[ptr]); \n\
+		else if (i == ',') \n\
+			stack[ptr] = std.io.getchar() & MOD_256_BITMAP; \n\
+		else if (i == '[') { \n\
+			if (stack[ptr] == 0) { \n\
+				for (let nesting : uint = 1; nesting > 0) { \n\
+					if (++iptr; iptr >= tape.size()) \n\
+						return FAILURE; \n\
+\n\
+					if (i = tape[iptr]; i == ']') \n\
+						--nesting; \n\
+					else if (i == '[') \n\
+						++nesting; \n\
+				} \n\
+			} \n\
+		} else if (i == ']') { \n\
+			if (stack[ptr] == 0) { \n\
+				for (let nesting : uint = 1; nesting > 0) { \n\
+					if (++iptr; iptr >= tape.size()) \n\
+						return FAILURE; \n\
+\n\
+					if (i = tape[iptr]; i == '[') \n\
+						--nesting; \n\
+					else if (i == ']') \n\
+						++nesting; \n\
+				} \n\
+			} \n\
+		} else return FAILURE; \n\
+	} \n\
+\n\
+	return SUCCESS; \n\
+} \n\
+\n\
+func main() : int { \n\
+	let tape : str = io.getstr(); \n\
+\n\
+	return interpret(tape); \n\
+}";
+
+
 int runCmdEnv() {
 	lsd::String inputBuffer;
 	inputBuffer.reserve(config::inputBufferStartingSize);
 
+
+	elyrium::compiler::Parser parser(code, "idk");
+	elyrium::compiler::ast::Module module;
+
+	try {
+		module = parser.parse();
+	} catch(const elyrium::Exception& exception) {
+		std::printf("%s", exception.what());
+		std::fflush(stdin);
+		inputBuffer.clear();
+
+		return 1;
+	}
+
+	module.print();
+
+	/*
 	while (true) {
 		std::printf(">>> ");
 
@@ -28,24 +122,24 @@ int runCmdEnv() {
 		if (inputBuffer == "__EXIT_CLI__") break;
 
 		elyrium::compiler::Parser parser(inputBuffer.data(), "stdin");
+		elyrium::compiler::ast::stmt_ptr stmt;
 
-		auto expr = parser.parse();
-		expr->print(0);
+		try {
+			stmt = parser.parse();
+		} catch(const elyrium::Exception& exception) {
+			std::printf("%s", exception.what());
+			std::fflush(stdin);
+			inputBuffer.clear();
 
-		/*
-		elyrium::compiler::Lexer lexer(inputBuffer.data(), "stdin");
+			continue;
+		}
 
-		for (elyrium::compiler::Token tok = lexer.nextToken();
-			 tok.type() != elyrium::compiler::Token::Type::eof;
-			 tok = lexer.nextToken()) std::printf("%s\n", tok.stringify().data());
-		*/
-
-		std::printf("\n");
+		stmt->print();
 
 		std::fflush(stdin);
-
 		inputBuffer.clear();
 	}
+	*/
 
 	return 0;
 }
