@@ -53,18 +53,35 @@ using size_type = std::size_t;
 
 // VM types
 
+struct Object;
+
 #ifdef ELYRIUM_64_BIT
 
-using signed_int = int64;
-using unsigned_int = uint64;
-using floating = float64;
+using signed_type = int64;
+using floating_type = float64;
+
+using value_marker_type = uintptr;
+using value_state_type = uintptr;
 
 #else
 
 using signed_int = int32;
-using unsigned_int = uint32;
 using floating = float32;
 
+struct alignas(8) ValueState {
+public:
+	size_type marker;
+	uintptr value;
+};
+
+using value_marker_type = size_type;
+using value_state_type = ValueState;
+
 #endif
+
+using object_type = Object*;
+using pointer_type = void*;
+
+using value_state_internal = uintptr;
 
 } // namespace elyrium
