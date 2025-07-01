@@ -1,0 +1,123 @@
+(* Elyrium Syntax *)
+(* Unused by the compiler, simply used as a reference *)
+(* 1.0: Lexical expressions *)
+
+bin_digit                   = "0" | "1";
+oct_digit                   = "0" | "1" | "..." | "7";
+dec_digit                   = "0" | "1" | "..." | "9";
+hex_digit                   = ( "0" | "1" | "..." | "9" ),
+                            | ( "a" | "b" | "..." | "f" ),
+                            | ( "A" | "B" | "..." | "F" );
+letter                      = ( "a" | "b" | "..." | "z" ),
+                            | ( "A" | "B" | "..." | "Z" );
+unicode                     = "\u0000" | "\u0001" | "..." | "\U0010FFFF" ;
+symbol                      = ";" | "." | "," | ":" | "(" | ")" | "{" | "}" | "[" | "]" | "^" | "~",
+                            | "|" | "&" | "+" | "-" | "*" | "/" | "%" | "=" | ">" | "<" | "!" | " ",
+                            | "\t" | "\n" | "\r" | "\f" | "\v" | '"' | "'" | "\" | "\b" | "\0";
+escape_seq                  = "\", ( "t" | "n" | "r" | "f" | "v" | '"' | "'" | "\" | "b" | "0",
+                            | ("x", hex_digit, [hex_digit] ),
+                            | ("u", hex_digit, [hex_digit], [hex_digit] ),
+                            | ("U", hex_digit, [hex_digit], [hex_digit], [hex_digit] ) );
+dec_digit_chain             = dec_digit, { dec_digit, | ( "_", dec_digit ) };
+
+character                   = "'", unicode - "'" | escape, "'";
+string_literal              = '"', { unicode - '"' | escape_seq }, '"';
+integral                    = [ "+" | "-" ], ( bin_digit, { bin_digit, | ( "_", bin_digit ) },
+                                            | oct_digit, { oct_digit, | ( "_", oct_digit ) },
+                                            | dec_digit_chain,
+                                            | hex_digit, { hex_digit, | ( "_", hex_digit ) } ), ["u"];
+floating                    = [ "+" | "-" ], ( ( [ dec_digit_chain ], ".", dec_digit_chain ),
+                                            | ( dec_digit_chain, [ ".", dec_digit_chain ] ),
+                                            [ "e", [ "+" | "-" ], dec_digit ], ["f"] );
+
+keywords                    = "null" | "move" | "true" | "false" | "if" | "else" | "for" | "while" | "do" | "break"
+							| "return" | "yield" | "let" | "ptr" | "const" | "global" | "func" | "namespace" | "coroutine"
+							| "class" | "enum" | "type" | "import" | "raise" | "try" | "catch" | "this";
+identifier                  = ( unicode - symbol, - dec_digit ), { unicode - symbol } - keywords;
+
+
+(* 1.1: Utility *)
+
+type_identifier             = identifier, [ "[", type_identifier, { ",", type_identifier }, "]" ];
+identifier_decl             = identifier, [ ":", type_identifier ];
+identifier_assign           = identifier_decl, [ "=", expression ];
+
+parameters                  = "(", [ identifier_decl, { ",", identifier_decl } ], ")";
+arguments                   = "(", [ expression, { ",", expression } ], ")";
+subscript                   = "[", expression, "]";
+
+storage_specifiers          = "let" | "const" | "global" | "ptr";
+
+
+(* 1.2: Declaration *)
+
+declaration                 = variable_decl | namespace_decl | function_decl | courutine_decl | special_function_decl | class_decl | enum_decl;
+
+type_alias_decl             = "type", identifier, "=", identifier, ";";
+namespace_decl              = "namespace", identifier, "{", { declaration }, "}";
+variable_decl               = storage_specifiers, identifier_assign, { ",", identifier_assign }, ";";
+function_decl               = "func", identifier, parameters, block;
+courutine_decl              = "coroutine", identifier, parameters, block_expression;
+special_function_decl       = identifier, parameters, block;
+class_decl                  = "class", identifier, "{", { declaration - namespace_decl }, "}";
+enum_decl                   = "enum", identifier, "{", { identifier, [ "=", identifier | expression ] }, "}";
+
+
+(* 1.2: Statements *)
+
+statement                   = ";" | declaration | if_statement | for_statement | while_statement | return_statement | expr_statement | block;
+
+expr_statement              = expression, ";";
+if_statement                = "if", "(", [ statement, ";" ], expression, ")", statement;
+for_statement               = "for", "(", ( [ statement ], ";", [ expression ], ";", [ expression ] ),
+                                      | ( storage_specifiers, parameters, ":", expression ), ")", statement;
+while_statement             = "while", "(", [ statement, ";" ], expression, ")", statement;
+return_statement            = "return", expression, ";";
+block                       = "{", { statement }, "}";
+
+yield_statement             = "yield", expression, ";";
+
+
+(* 1.2: Expressions *)
+
+expression                  = assignment | special_expressions;
+
+member                      = identifier, { ( ".", identifier, [ arguments | subscript ] ),
+                                         | arguments | subscript };
+
+numerical                   = "null" | character | integral | floating | member;
+logical                     = "true" | "false";
+
+atomic_numeric_expr         = ( [ "+" | "-" ], [ "~" ], numerical | ( "(", expression, ")" ) ),
+                            | ( [ "++" | "--" ], ( member | ( "(", expression, ")" ) ) ),
+                            | ( ( member | ( "(", expression, ")" ) ), [ "++" | "--" ] );
+logical_unary               = [ "+" | "-" ], [ "~" | "!" ], ( logical | ( "(", expression, ")" ) );
+pointer_unary               = "&", ( member | "(", expression, ")" );
+
+factor                      = atomic_numeric_expr, { ( "*" | "/" | "%" ), atomic_numeric_expr };
+term                        = (factor | pointer_unary | logical_unary), { ( "+" | "-" ), (factor | pointer_unary | logical_unary) };
+shift                       = term, { ( "<<" | ">>" ), term };
+
+comparison                  = shift, { ( "<" | "<=" | "<=>" | ">" | ">=" ), shift };
+equality                    = comparison, { ( "==" | "!=" ), logical_unary };
+
+bitwise_and                 = equality, { "&", equality };
+bitwise_xor                 = bitwise_and, { "^", bitwise_and };
+bitwise_or                  = bitwise_xor, { "|", bitwise_xor };
+
+logical_and                 = bitwise_or, { "&&", bitwise_or };
+logical_or                  = logical_and, { "||", logical_and };
+
+assignment                  = member, ( "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "<<=" | ">>=" | "move" ), logical_or | assignment;
+
+
+(* 1.2.1: Special expressions *)
+
+special_expressions         = generator_expression | if_expression | for_expression | while_expression;
+
+generator_expression        = "{", { statement - return_statement | special_expressions }, ( special_expressions | yield_statement ), "}";
+
+if_expression               = "if", "(", [ statement, ";" ], expression, ")", special_expressions | yield_statement;
+for_expression              = "for", "(", ( [ statement ], ";", [ expression ], ";", [ expression ] ),
+                                      | ( storage_specifiers, parameters, ":", expression ), ")", special_expressions | yield_statement;
+while_expression            = "while", "(", [ statement, ";" ], expression, ")", special_expressions | yield_statement;
